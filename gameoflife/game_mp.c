@@ -1,13 +1,20 @@
 #include <stdio.h>
+#include "omp.h"
+
 #define CELL(I, J) (field[size * (I) + (J)])
 #define ALIVE(I, J) t[size * (I) + (J)] = 1
 #define DEAD(I, J) t[size * (I) + (J)] = 0
 
-#define FIELD_SIZE 40
-#define FIELD_GEN 10000
+#define FIELD_SIZE 60
+#define FIELD_GEN 200000
+
+//18.8s 4cores
+//22.7 2cores
+//34 1core
 
 int count_alive(const char *field, int i, int j, int size) {
     int x, y, a = 0;
+
     for (x = i - 1; x <= (i + 1); x++) {
         for (y = j - 1; y <= (j + 1); y++) {
             if ((x == i) && (y == j))
@@ -20,13 +27,21 @@ int count_alive(const char *field, int i, int j, int size) {
     }
     return a;
 }
+// 1 13.3
+// 2 9.2
+// 4 11.4
 
 void evolve(const char *field, char *t, int size) {
     int i, j, alive, cs;
+
+    omp_set_num_threads(2);
+    #pragma omp parallel private (i, j, cs, alive)
     for (i = 0; i < size; i++) {
+       #pragma omp for
         for (j = 0; j < size; j++) {
             alive = count_alive(field, i, j, size);
             cs = CELL(i, j);
+            
             if (cs) {
                 if ((alive > 3) || (alive < 2))
                     DEAD(i, j);
@@ -61,9 +76,11 @@ void dump_field(const char *f, int size) {
 int main(int argc, char **argv) {
     int i;
     char *fa, *fb, *tt;
+    double starttime, stoptime;
 
     for (i = 0; i < (FIELD_SIZE * FIELD_SIZE); i++)
         field[i] = 0;
+
     /* prepare the glider */
     SCELL(10, 1);
     SCELL(10, 2);
@@ -77,7 +94,7 @@ int main(int argc, char **argv) {
     SCELL(3, 11);
     SCELL(3, 9);
     SCELL(1, 12);
-    
+
     SCELL(2, 15);
     SCELL(3, 14);
     SCELL(3, 13);
@@ -90,13 +107,27 @@ int main(int argc, char **argv) {
     /* evolve */
     fa = field;
     fb = temp_field;
+
+    starttime = omp_get_wtime();
+
     for (i = 0; i < FIELD_GEN; i++) {
-        dump_field(fa, FIELD_SIZE);
         evolve(fa, fb, FIELD_SIZE);
         tt = fb;
         fb = fa;
         fa = tt;
     }
-    return 0;
     
+    dump_field(fa, FIELD_SIZE);
+
+    stoptime = omp_get_wtime();
+
+    printf("Tempo de execucao em paralalo %3.2f segundos \n", stoptime - starttime);
+
+    return 0;
+
 }
+
+
+
+
+
