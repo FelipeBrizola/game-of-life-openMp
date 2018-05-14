@@ -1,12 +1,15 @@
 #include <stdio.h>
-#include "omp.h" // compilado em macos. Se utilizar linux, troca aspas por <>
+#include <omp.h> // compilado em macos. Se utilizar linux, troca aspas por <>
 
 #define CELL(I, J) (field[size * (I) + (J)])
 #define ALIVE(I, J) t[size * (I) + (J)] = 1
 #define DEAD(I, J) t[size * (I) + (J)] = 0
 
-#define FIELD_SIZE 200
-#define FIELD_GEN 20000
+int FIELD_SIZE = 0;
+int FIELD_GEN = 0;
+
+//#define FIELD_SIZE 200
+//#define FIELD_GEN 20000
 
 int count_alive(const char *field, int i, int j, int size) {
     int x, y, a = 0;
@@ -50,8 +53,7 @@ void evolve(const char *field, char *t, int size) {
         }
     }
 }
-char field[FIELD_SIZE * FIELD_SIZE];
-char temp_field[FIELD_SIZE * FIELD_SIZE];
+
 
 /* set das celulas i, j como ativas */
 #define SCELL(I, J) field[FIELD_SIZE * (I) + (J)] = 1
@@ -71,6 +73,28 @@ int main(int argc, char **argv) {
     int i;
     char *fa, *fb, *tt;
     double starttime, stoptime;
+    int NUM_THREADS = 0;
+
+    if (argc != 4) {
+        fprintf(stderr, "error - the parameters are: gen, gen_size, num_threads\n");
+        return 1;
+    }
+    
+    if (sscanf (argv[1], "%i", &FIELD_GEN) != 1) {
+        fprintf(stderr, "error - not an integer");
+    }
+    if (sscanf (argv[2], "%i", &FIELD_SIZE) != 1) {
+        fprintf(stderr, "error - not an integer");
+    }
+    if (sscanf (argv[3], "%i", &NUM_THREADS) != 1) {
+        fprintf(stderr, "error - not an integer");
+    }
+    
+    // quantidade de threads
+    omp_set_num_threads(NUM_THREADS);
+    
+    char field[FIELD_SIZE * FIELD_SIZE];
+    char temp_field[FIELD_SIZE * FIELD_SIZE];
     int size = FIELD_SIZE * FIELD_SIZE;
 
     for (i = 0; i < size; i++)
@@ -97,8 +121,9 @@ int main(int argc, char **argv) {
 
     fa = field;
     fb = temp_field;
-
-    omp_set_num_threads(8);
+    
+    fprintf(stdout, "Running with %d  threads... print first gen\n", omp_get_num_threads());
+    dump_field(fa, FIELD_SIZE); // print da primeira execucao
     
     starttime = omp_get_wtime();
 
@@ -110,8 +135,9 @@ int main(int argc, char **argv) {
     }
 
     stoptime = omp_get_wtime();
-    printf("Tempo de execucao %3.2f segundos \n", stoptime - starttime);
+    fprintf(stdout, "Done... print last gen\n");
     dump_field(fa, FIELD_SIZE); // print da ultima execucao
+    printf("Tempo de execucao %3.2f segundos \n", stoptime - starttime);
 
     return 0;
 
