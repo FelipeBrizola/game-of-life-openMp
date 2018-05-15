@@ -8,9 +8,6 @@
 int FIELD_SIZE = 0;
 int FIELD_GEN = 0;
 
-//#define FIELD_SIZE 200
-//#define FIELD_GEN 20000
-
 int count_alive(const char *field, int i, int j, int size) {
     int x, y, a = 0;
 
